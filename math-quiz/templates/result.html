@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}考试结果 - {{ student.name }}{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>考试结果</h2>
+    <div class="result-summary">
+        <div class="result-score">
+            <span class="score-big">{{ exam.score }}</span>
+            <span class="score-total">/ {{ exam.total }}</span>
+        </div>
+        <div class="result-info">
+            <p>学生：{{ student.name }}</p>
+            <p>类型：{% if exam.exam_type == 'diagnostic' %}诊断卷{% else %}补弱训练卷{% endif %}</p>
+            <p>正确率：{{ (exam.score / exam.total * 100)|round|int if exam.total > 0 else 0 }}%</p>
+            <p>时间：{{ exam.created_at }}</p>
+        </div>
+    </div>
+    <div class="actions">
+        <a href="/student/{{ student.id }}" class="btn">返回学生档案</a>
+        <a href="/exam/training/{{ student.id }}" class="btn btn-warning">生成补弱训练卷</a>
+    </div>
+</section>
+
+<section class="card">
+    <h2>本次知识点分析</h2>
+    <div class="kp-grid">
+        {% for kp, data in kp_summary.items() %}
+        <div class="kp-item {% if data.weak %}kp-weak{% else %}kp-ok{% endif %}">
+            <div class="kp-name">{{ kp }}</div>
+            <div class="progress-bar">
+                <div class="progress-fill {% if data.weak %}fill-weak{% else %}fill-ok{% endif %}" style="width: {{ data.rate }}%"></div>
+            </div>
+            <div class="kp-detail">
+                {{ data.correct }}/{{ data.total }} 正确率 {{ data.rate }}%
+                {% if data.weak %}<span class="tag-weak">薄弱</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+{% if all_kp_stats %}
+<section class="card">
+    <h2>累计知识点掌握情况</h2>
+    <div class="kp-grid">
+        {% for s in all_kp_stats %}
+        <div class="kp-item {% if s.weak %}kp-weak{% else %}kp-ok{% endif %}">
+            <div class="kp-name">{{ s.kp }}</div>
+            <div class="progress-bar">
+                <div class="progress-fill {% if s.weak %}fill-weak{% else %}fill-ok{% endif %}" style="width: {{ s.rate }}%"></div>
+            </div>
+            <div class="kp-detail">{{ s.correct }}/{{ s.total }} 正确率 {{ s.rate }}%
+                {% if s.weak %}<span class="tag-weak">薄弱</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="card">
+    <h2>答题详情</h2>
+    {% for a in answers %}
+    <div class="answer-item {% if a.is_correct %}answer-correct{% else %}answer-wrong{% endif %}">
+        <div class="answer-header">
+            <span class="question-num">第 {{ loop.index }} 题</span>
+            <span class="question-kp">{{ a.knowledge_point }}</span>
+            {% if a.is_correct %}
+            <span class="tag-correct">正确</span>
+            {% else %}
+            <span class="tag-wrong">错误</span>
+            {% endif %}
+        </div>
+        <p class="question-text">{{ a.question }}</p>
+        <div class="answer-detail">
+            {% set labels = ['A', 'B', 'C', 'D'] %}
+            {% for opt in a.options %}
+            <span class="opt-review
+                {% if labels[loop.index0] == a.correct_answer %}opt-correct{% endif %}
+                {% if labels[loop.index0] == a.student_answer and not a.is_correct %}opt-wrong{% endif %}
+            ">
+                {{ labels[loop.index0] }}. {{ opt }}
+            </span>
+            {% endfor %}
+        </div>
+        {% if not a.is_correct %}
+        <p class="answer-explain">
+            你的答案：<strong>{{ a.student_answer if a.student_answer else '未作答' }}</strong>，
+            正确答案：<strong>{{ a.correct_answer }}</strong>
+        </p>
+        {% endif %}
+        {% if a.explanation %}
+        <div class="answer-solution">
+            <div class="solution-title">解题思路</div>
+            <p class="solution-text">{{ a.explanation }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}

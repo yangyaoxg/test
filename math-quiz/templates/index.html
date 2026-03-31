@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}学生列表 - 小学数学查漏补缺{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>创建学生档案</h2>
+    <form method="POST" action="/student/create" class="form-inline">
+        <input type="text" name="name" placeholder="学生姓名" required>
+        <select name="grade" required>
+            <option value="">-- 选择年级学期 --</option>
+            {% for g in grade_options %}
+            <option value="{{ g }}">{{ g }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-primary">创建</button>
+    </form>
+</section>
+
+<section class="card">
+    <h2>学生列表</h2>
+    {% if students %}
+    <table>
+        <thead>
+            <tr>
+                <th>姓名</th>
+                <th>年级</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in students %}
+            <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.grade }}</td>
+                <td>{{ s.created_at }}</td>
+                <td>
+                    <a href="/student/{{ s.id }}" class="btn btn-small">查看详情</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-hint">暂无学生，请先创建学生档案。</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ student.name }} - 学生档案{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>{{ student.name }} <span class="badge">{{ student.grade }}</span></h2>
+    <div class="actions">
+        <a href="/exam/diagnostic/{{ student.id }}" class="btn btn-primary">生成诊断卷（40题）</a>
+        <a href="/exam/training/{{ student.id }}" class="btn btn-warning">生成补弱训练卷</a>
+        <a href="/" class="btn">返回首页</a>
+    </div>
+</section>
+
+{% if kp_stats %}
+<section class="card">
+    <h2>知识点掌握情况</h2>
+    <div class="kp-grid">
+        {% for s in kp_stats %}
+        <div class="kp-item {% if s.weak %}kp-weak{% else %}kp-ok{% endif %}">
+            <div class="kp-name">{{ s.kp }}</div>
+            <div class="progress-bar">
+                <div class="progress-fill {% if s.weak %}fill-weak{% else %}fill-ok{% endif %}" style="width: {{ s.rate }}%"></div>
+            </div>
+            <div class="kp-detail">{{ s.correct }}/{{ s.total }} 正确率 {{ s.rate }}%
+                {% if s.weak %}<span class="tag-weak">薄弱</span>{% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if exams %}
+<section class="card">
+    <h2>考试记录</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>类型</th>
+                <th>得分</th>
+                <th>总题数</th>
+                <th>正确率</th>
+                <th>时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in exams %}
+            <tr>
+                <td>
+                    {% if e.exam_type == 'diagnostic' %}
+                    <span class="tag-diag">诊断卷</span>
+                    {% else %}
+                    <span class="tag-train">训练卷</span>
+                    {% endif %}
+                </td>
+                <td>{{ e.score }}</td>
+                <td>{{ e.total }}</td>
+                <td>{{ (e.score / e.total * 100)|round|int if e.total > 0 else 0 }}%</td>
+                <td>{{ e.created_at }}</td>
+                <td><a href="/exam/result/{{ e.id }}" class="btn btn-small">查看详情</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+{% endblock %}

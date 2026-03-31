@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ exam_type }} - {{ student.name }}{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>{{ exam_type }} - {{ student.name }}</h2>
+    <p>共 {{ questions|length }} 题，请认真作答后提交。</p>
+</section>
+
+<form method="POST" action="/exam/submit" id="examForm">
+    <input type="hidden" name="exam_id" value="{{ exam_id }}">
+
+    {% for q in questions %}
+    <section class="card question-card" id="qcard_{{ q.id }}">
+        <div class="question-header">
+            <span class="question-num">第 {{ loop.index }} 题</span>
+            <span class="question-kp">{{ q.kp }}</span>
+        </div>
+        <p class="question-text">{{ q.question }}</p>
+        <div class="options">
+            {% set labels = ['A', 'B', 'C', 'D'] %}
+            {% for opt in q.options %}
+            <label class="option-label" id="label_{{ q.id }}_{{ labels[loop.index0] }}">
+                <input type="radio" name="q_{{ q.id }}" value="{{ labels[loop.index0] }}"
+                       onchange="markAnswered({{ q.id }})">
+                <span class="option-letter">{{ labels[loop.index0] }}</span>
+                <span>{{ opt }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+
+    <section class="card submit-section">
+        <div class="answer-progress">
+            <span id="answeredCount">0</span> / {{ questions|length }} 已作答
+        </div>
+        <button type="submit" class="btn btn-primary btn-large" onclick="return confirmSubmit()">提交答卷</button>
+    </section>
+</form>
+
+<script>
+const totalQuestions = {{ questions|length }};
+const answered = new Set();
+
+function markAnswered(qid) {
+    answered.add(qid);
+    document.getElementById('answeredCount').textContent = answered.size;
+    document.getElementById('qcard_' + qid).classList.add('answered');
+}
+
+function confirmSubmit() {
+    if (answered.size < totalQuestions) {
+        return confirm('还有 ' + (totalQuestions - answered.size) + ' 题未作答，确定提交吗？');
+    }
+    return true;
+}
+</script>
+{% endblock %}
