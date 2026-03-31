@@ -1,0 +1,160 @@
+:root {
+  --bg1: #f5fbff;
+  --bg2: #fff6fb;
+  --primary: #5b8cff;
+  --success: #2fbf71;
+  --warning: #ff9f43;
+  --secondary: #7f8fa6;
+  --text: #2f3542;
+  --card: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: linear-gradient(135deg, var(--bg1), var(--bg2));
+  min-height: 100vh;
+}
+
+.bg-bubbles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 20% 20%, rgba(91, 140, 255, 0.12) 0 40px, transparent 42px),
+    radial-gradient(circle at 80% 25%, rgba(255, 159, 67, 0.1) 0 30px, transparent 32px),
+    radial-gradient(circle at 30% 80%, rgba(47, 191, 113, 0.1) 0 38px, transparent 40px);
+}
+
+.container {
+  width: min(980px, 92vw);
+  margin: 24px auto 48px;
+  position: relative;
+  z-index: 1;
+}
+
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 10px 24px rgba(91, 140, 255, 0.1);
+  margin-bottom: 16px;
+}
+
+.hero {
+  text-align: center;
+  background: linear-gradient(135deg, #fef7ff, #f6fbff);
+}
+
+h1,
+h2 {
+  margin: 8px 0 12px;
+}
+
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+input {
+  flex: 1;
+  min-width: 220px;
+  border: 2px solid #dfe4ea;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--primary);
+}
+
+.btn-success {
+  background: var(--success);
+}
+
+.btn-warning {
+  background: var(--warning);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+}
+
+.tip {
+  color: #57606f;
+}
+
+.paper-item {
+  border: 1px dashed #ced6e0;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 8px 0;
+  background: #fbfcff;
+}
+
+.options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.option-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5ff;
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+
+.kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.kpi-card {
+  background: #f8faff;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #dfe4ea;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #70a1ff, #2ed573);
+}
