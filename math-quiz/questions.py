@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-"""小学数学题库，覆盖三到六年级。"""
+"""小学数学题库，覆盖三到六年级上下学期。"""
 
 from itertools import count
 
 
-GRADE_OPTIONS = [
+BASE_GRADE_OPTIONS = [
     "三年级",
     "四年级",
     "五年级",
@@ -12,7 +12,17 @@ GRADE_OPTIONS = [
 ]
 
 
-QUESTION_BANK = {
+SEMESTERS = ["上学期", "下学期"]
+
+
+GRADE_OPTIONS = [
+    f"{grade}{semester}"
+    for grade in BASE_GRADE_OPTIONS
+    for semester in SEMESTERS
+]
+
+
+BASE_QUESTION_BANK = {
     "三年级": {
         "万以内加减法": [
             ("328 + 476 = ?", "804", ["794", "814", "904"], "列竖式相加，个位、十位、百位依次相加。"),
@@ -224,6 +234,22 @@ QUESTION_BANK = {
 }
 
 
+def normalize_grade(grade):
+    """兼容旧数据，将年级规范到“X年级上/下学期”格式。"""
+    if grade in GRADE_OPTIONS:
+        return grade
+    if grade in BASE_GRADE_OPTIONS:
+        return f"{grade}下学期"
+    return GRADE_OPTIONS[0]
+
+
+QUESTION_BANK = {
+    f"{grade}{semester}": BASE_QUESTION_BANK[grade]
+    for grade in BASE_GRADE_OPTIONS
+    for semester in SEMESTERS
+}
+
+
 def _build_question(question_id, grade, knowledge_point, spec):
     question_text, correct, distractors, explanation = spec
     correct_index = question_id % 4
@@ -258,17 +284,20 @@ QUESTIONS_BY_ID = {question["id"]: question for question in QUESTIONS}
 
 def get_knowledge_points(grade):
     """获取指定年级的所有知识点"""
-    return list(QUESTION_BANK.get(grade, QUESTION_BANK[GRADE_OPTIONS[0]]).keys())
+    normalized_grade = normalize_grade(grade)
+    return list(QUESTION_BANK[normalized_grade].keys())
 
 
 def get_questions_for_grade(grade):
     """获取指定年级的所有题目"""
-    return [q for q in QUESTIONS if q["grade"] == grade]
+    normalized_grade = normalize_grade(grade)
+    return [q for q in QUESTIONS if q["grade"] == normalized_grade]
 
 
 def get_questions_by_kp(grade, kp):
     """获取指定年级和知识点的所有题目"""
-    return [q for q in QUESTIONS if q["grade"] == grade and q["kp"] == kp]
+    normalized_grade = normalize_grade(grade)
+    return [q for q in QUESTIONS if q["grade"] == normalized_grade and q["kp"] == kp]
 
 
 def get_question_by_id(qid):

@@ -24,7 +24,7 @@ class MathQuizAppTestCase(unittest.TestCase):
         models.DB_PATH = self.original_db_path
         self.temp_dir.cleanup()
 
-    def create_student(self, name="测试学生", grade="四年级"):
+    def create_student(self, name="测试学生", grade="四年级下学期"):
         response = self.client.post(
             "/student/create",
             data={"name": name, "grade": grade},
@@ -113,6 +113,13 @@ class MathQuizAppTestCase(unittest.TestCase):
             self.assertGreaterEqual(len(grade_questions), 40)
             for knowledge_point in questions.get_knowledge_points(grade):
                 self.assertTrue(questions.get_questions_by_kp(grade, knowledge_point))
+
+    def test_create_student_with_semester_grade(self):
+        student = self.create_student(grade="三年级上学期")
+        self.assertEqual(student["grade"], "三年级上学期")
+
+        response = self.client.get(f"/exam/diagnostic/{student['id']}")
+        self.assertEqual(response.status_code, 200)
 
 
 if __name__ == "__main__":
