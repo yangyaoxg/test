@@ -1,6 +1,37 @@
 {% extends "base.html" %}
 {% block title %}学生列表 - 小学数学查漏补缺{% endblock %}
 {% block content %}
+<section class="hero-panel">
+    <div class="hero-copy">
+        <span class="eyebrow">今日入口</span>
+        <h2>把诊断测试做成一场有反馈的数学闯关</h2>
+        <p>先创建学生档案，再进入专属挑战地图。每次闯关都会换一批题，方便观察是否真正进步。</p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <strong>{{ students|length }}</strong>
+                <span>已创建档案</span>
+            </div>
+            <div class="hero-stat">
+                <strong>{{ grade_options|length }}</strong>
+                <span>学期版本</span>
+            </div>
+            <div class="hero-stat">
+                <strong>40</strong>
+                <span>每次诊断题量</span>
+            </div>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <div class="planet planet-a"></div>
+        <div class="planet planet-b"></div>
+        <div class="planet planet-c"></div>
+        <div class="hero-mascot">
+            <div class="mascot-face">+</div>
+            <p>准备开始今天的数学挑战</p>
+        </div>
+    </div>
+</section>
+
 <section class="card">
     <h2>创建学生档案</h2>
     <form method="POST" action="/student/create" class="form-inline">
@@ -17,30 +48,26 @@
 </section>
 
 <section class="card">
-    <h2>学生列表</h2>
+    <div class="section-head">
+        <h2>学生列表</h2>
+        <span class="section-tip">从这里进入每个孩子的专属学习地图</span>
+    </div>
     {% if students %}
-    <table>
-        <thead>
-            <tr>
-                <th>姓名</th>
-                <th>年级</th>
-                <th>创建时间</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
+    <div class="student-grid">
             {% for s in students %}
-            <tr>
-                <td>{{ s.name }}</td>
-                <td>{{ s.grade }}</td>
-                <td>{{ s.created_at }}</td>
-                <td>
-                    <a href="/student/{{ s.id }}" class="btn btn-small">查看详情</a>
-                </td>
-            </tr>
+            <article class="student-card">
+                <div class="student-card-top">
+                    <div>
+                        <div class="student-name">{{ s.name }}</div>
+                        <div class="student-grade">{{ s.grade }}</div>
+                    </div>
+                    <span class="student-avatar">{{ s.name[:1] }}</span>
+                </div>
+                <p class="student-meta">建档时间 {{ s.created_at }}</p>
+                <a href="/student/{{ s.id }}" class="btn btn-primary">进入学习地图</a>
+            </article>
             {% endfor %}
-        </tbody>
-    </table>
+    </div>
     {% else %}
     <p class="empty-hint">暂无学生，请先创建学生档案。</p>
     {% endif %}

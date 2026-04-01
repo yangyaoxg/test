@@ -1,27 +1,122 @@
 {% extends "base.html" %}
 {% block title %}{{ exam_type }} - {{ student.name }}{% endblock %}
 {% block content %}
-<section class="card">
-    <h2>{{ exam_type }} - {{ student.name }}</h2>
-    <p>共 {{ questions|length }} 题，请认真作答后提交。</p>
+<section class="hero-panel hero-panel-compact">
+    <div class="hero-copy">
+        <span class="eyebrow">{{ exam_type }}</span>
+        <h2>{{ student.name }}，开始今天的数学挑战</h2>
+        <p>共 {{ questions|length }} 题。先把会做的稳稳拿下，再去冲提升题。每完成 5 题，就离终点更近一步。</p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <strong>{{ questions|length }}</strong>
+                <span>本次题量</span>
+            </div>
+            <div class="hero-stat">
+                <strong>{{ covered_kps|length if covered_kps else 0 }}</strong>
+                <span>覆盖知识点</span>
+            </div>
+            <div class="hero-stat">
+                <strong>5</strong>
+                <span>阶段里程碑</span>
+            </div>
+        </div>
+    </div>
+    <div class="hero-visual">
+        <div class="challenge-badge">GO</div>
+    </div>
+</section>
+
+<section class="card coach-card">
+    <div class="coach-bubble">
+        <strong>闯关提示</strong>
+        <p>遇到难题先标记，先把容易题做完。全部完成后再回头检查。</p>
+    </div>
+    <details class="teacher-panel">
+        <summary>查看教师/家长视角的抽题说明</summary>
+        {% if syllabus_kps %}
+        <p>本学期教材知识点共 {{ syllabus_kps|length }} 个，本卷已全部覆盖。</p>
+        <div class="question-tags">
+            {% for kp in syllabus_kps %}
+            <span class="question-kp">{{ kp }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if covered_kps %}
+        <p>本卷实际抽到的知识点：</p>
+        <div class="question-tags">
+            {% for kp in covered_kps %}
+            <span class="question-kp">{{ kp }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if coverage_rows %}
+        <p>抽题分布：</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>知识点</th>
+                    <th>题数</th>
+                    <th>基础</th>
+                    <th>提升</th>
+                    <th>综合</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in coverage_rows %}
+                <tr>
+                    <td>{{ row.kp }}</td>
+                    <td>{{ row.total }}</td>
+                    <td>{{ row.basic }}</td>
+                    <td>{{ row.medium }}</td>
+                    <td>{{ row.challenge }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </details>
 </section>
 
 <form method="POST" action="/exam/submit" id="examForm">
     <input type="hidden" name="exam_id" value="{{ exam_id }}">
 
+    <section class="card nav-card">
+        <div class="answer-progress">
+            <div class="progress-topline">
+                <span><strong id="answeredCount">0</strong> / {{ questions|length }} 已作答</span>
+                <span id="progressLabel">准备出发</span>
+            </div>
+            <div class="journey-progress">
+                <div class="journey-fill" id="journeyFill" style="width: 0%"></div>
+            </div>
+        </div>
+        <div class="question-nav">
+            {% for q in questions %}
+            <a href="#qcard_{{ q.id }}" class="nav-pill" id="nav_{{ q.id }}">{{ loop.index }}</a>
+            {% endfor %}
+        </div>
+    </section>
+
     {% for q in questions %}
     <section class="card question-card" id="qcard_{{ q.id }}">
         <div class="question-header">
             <span class="question-num">第 {{ loop.index }} 题</span>
-            <span class="question-kp">{{ q.kp }}</span>
+            <div class="question-tags">
+                <span class="question-kp">{{ q.kp }}</span>
+                <span class="question-kp">{{ q.difficulty_label }}</span>
+                <span class="question-kp">{{ q.ability_label }}</span>
+            </div>
         </div>
         <p class="question-text">{{ q.question }}</p>
+        {% if q.figure_svg %}
+        <div class="question-figure">{{ q.figure_svg|safe }}</div>
+        {% endif %}
         <div class="options">
             {% set labels = ['A', 'B', 'C', 'D'] %}
             {% for opt in q.options %}
-            <label class="option-label" id="label_{{ q.id }}_{{ labels[loop.index0] }}">
+            <label class="option-label" id="label_{{ q.id }}_{{ labels[loop.index0] }}" data-question-id="{{ q.id }}">
                 <input type="radio" name="q_{{ q.id }}" value="{{ labels[loop.index0] }}"
-                       onchange="markAnswered({{ q.id }})">
+                       onchange="markAnswered({{ q.id }}, '{{ labels[loop.index0] }}')">
                 <span class="option-letter">{{ labels[loop.index0] }}</span>
                 <span>{{ opt }}</span>
             </label>
@@ -31,21 +126,67 @@
     {% endfor %}
 
     <section class="card submit-section">
-        <div class="answer-progress">
-            <span id="answeredCount">0</span> / {{ questions|length }} 已作答
-        </div>
         <button type="submit" class="btn btn-primary btn-large" onclick="return confirmSubmit()">提交答卷</button>
     </section>
 </form>
 
+<div class="milestone-toast" id="milestoneToast" aria-live="polite"></div>
+
 <script>
 const totalQuestions = {{ questions|length }};
 const answered = new Set();
+let lastMilestone = 0;
 
-function markAnswered(qid) {
-    answered.add(qid);
+function refreshProgress() {
+    const progress = answered.size / totalQuestions;
     document.getElementById('answeredCount').textContent = answered.size;
+    document.getElementById('journeyFill').style.width = (progress * 100) + '%';
+
+    let label = '准备出发';
+    if (answered.size === totalQuestions) {
+        label = '全部完成，可以提交';
+    } else if (progress >= 0.75) {
+        label = '快到终点了';
+    } else if (progress >= 0.5) {
+        label = '已经完成一半';
+    } else if (progress >= 0.25) {
+        label = '状态不错，继续';
+    }
+    document.getElementById('progressLabel').textContent = label;
+}
+
+function showMilestone(message) {
+    const toast = document.getElementById('milestoneToast');
+    toast.textContent = message;
+    toast.classList.add('milestone-toast-show');
+    window.clearTimeout(showMilestone.timer);
+    showMilestone.timer = window.setTimeout(() => {
+        toast.classList.remove('milestone-toast-show');
+    }, 1800);
+}
+
+function markAnswered(qid, selectedLabel) {
+    answered.add(qid);
     document.getElementById('qcard_' + qid).classList.add('answered');
+    document.getElementById('nav_' + qid).classList.add('nav-pill-done');
+
+    const optionLabels = document.querySelectorAll('[data-question-id="' + qid + '"]');
+    optionLabels.forEach((label) => {
+        label.classList.remove('option-selected');
+    });
+    document.getElementById('label_' + qid + '_' + selectedLabel).classList.add('option-selected');
+
+    refreshProgress();
+
+    const milestone = Math.floor(answered.size / 5);
+    if (milestone > lastMilestone && answered.size < totalQuestions) {
+        lastMilestone = milestone;
+        showMilestone('已完成 ' + answered.size + ' 题，继续冲刺');
+    }
+
+    if (answered.size === totalQuestions) {
+        showMilestone('全部完成，可以提交答卷了');
+    }
 }
 
 function confirmSubmit() {
@@ -54,5 +195,7 @@ function confirmSubmit() {
     }
     return true;
 }
+
+refreshProgress();
 </script>
 {% endblock %}

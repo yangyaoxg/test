@@ -9,17 +9,156 @@
 <body>
     <header>
         <div class="container">
-            <h1><a href="/">小学数学查漏补缺系统</a></h1>
-            <p class="subtitle">深圳小学三至六年级</p>
+            <div class="brand-row">
+                <div>
+                    <h1><a href="/">小学数学查漏补缺系统</a></h1>
+                    <p class="subtitle">三至六年级分层诊断与补弱训练</p>
+                </div>
+                <div class="hero-badges">
+                    <span class="hero-chip">数学闯关</span>
+                    <span class="hero-chip">知识点点亮</span>
+                    <span class="hero-chip">成长看得见</span>
+                </div>
+            </div>
         </div>
     </header>
     <main class="container">
+        <div class="mode-switch" aria-label="界面模式切换">
+            <button type="button" class="mode-btn" data-ui-mode="kid">孩子模式</button>
+            <button type="button" class="mode-btn mode-btn-parent" data-ui-mode="parent">家长模式</button>
+        </div>
+        <div class="parent-lock-modal" id="parent-lock-modal" hidden>
+            <div class="parent-lock-panel" role="dialog" aria-modal="true" aria-labelledby="parent-lock-title">
+                <h2 id="parent-lock-title">解锁家长模式</h2>
+                <p class="parent-lock-tip">请先完成一道简单验证，避免孩子误触切换。</p>
+                <p class="parent-lock-question" id="parent-lock-question"></p>
+                <input
+                    id="parent-lock-answer"
+                    class="parent-lock-input"
+                    type="number"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    placeholder="输入答案"
+                >
+                <p class="parent-lock-error" id="parent-lock-error">答案不正确，请重试。</p>
+                <div class="parent-lock-actions">
+                    <button type="button" class="btn" id="parent-lock-cancel">取消</button>
+                    <button type="button" class="btn btn-primary" id="parent-lock-confirm">确认解锁</button>
+                </div>
+            </div>
+        </div>
         {% block content %}{% endblock %}
     </main>
     <footer>
         <div class="container">
-            <p>小学数学知识查漏补缺系统 MVP</p>
+            <p>基于知识点、难度和能力维度的诊断练习系统</p>
         </div>
     </footer>
+    <script>
+    (function () {
+        const body = document.body;
+        const buttons = document.querySelectorAll('[data-ui-mode]');
+        const parentButton = document.querySelector('[data-ui-mode="parent"]');
+        const savedMode = window.localStorage.getItem('math_quiz_ui_mode') || 'kid';
+        const parentLockModal = document.getElementById('parent-lock-modal');
+        const parentLockQuestion = document.getElementById('parent-lock-question');
+        const parentLockAnswer = document.getElementById('parent-lock-answer');
+        const parentLockError = document.getElementById('parent-lock-error');
+        const parentLockCancel = document.getElementById('parent-lock-cancel');
+        const parentLockConfirm = document.getElementById('parent-lock-confirm');
+        const PARENT_UNLOCK_TTL_MS = 10 * 60 * 1000;
+        let currentQuestionAnswer = null;
+
+        function hasParentUnlock() {
+            const unlockUntil = parseInt(window.sessionStorage.getItem('math_quiz_parent_unlock_until') || '0', 10);
+            return Number.isFinite(unlockUntil) && unlockUntil > Date.now();
+        }
+
+        function markParentUnlocked() {
+            window.sessionStorage.setItem('math_quiz_parent_unlock_until', String(Date.now() + PARENT_UNLOCK_TTL_MS));
+        }
+
+        function buildVerificationQuestion() {
+            const left = Math.floor(Math.random() * 8) + 2;
+            const right = Math.floor(Math.random() * 8) + 2;
+            currentQuestionAnswer = left + right;
+            parentLockQuestion.textContent = '请计算：' + left + ' + ' + right + ' = ?';
+        }
+
+        function applyMode(mode) {
+            const nextMode = mode === 'parent' && !hasParentUnlock() ? 'kid' : mode;
+            body.classList.remove('ui-mode-kid', 'ui-mode-parent');
+            body.classList.add('ui-mode-' + nextMode);
+            buttons.forEach((button) => {
+                button.classList.toggle('mode-btn-active', button.dataset.uiMode === nextMode);
+            });
+            window.localStorage.setItem('math_quiz_ui_mode', nextMode);
+        }
+
+        function openParentLock() {
+            if (!parentLockModal) return;
+            buildVerificationQuestion();
+            parentLockAnswer.value = '';
+            parentLockError.classList.remove('parent-lock-error-visible');
+            parentLockModal.hidden = false;
+            parentLockAnswer.focus();
+        }
+
+        function closeParentLock() {
+            if (!parentLockModal) return;
+            parentLockModal.hidden = true;
+        }
+
+        buttons.forEach((button) => {
+            button.addEventListener('click', function () {
+                const targetMode = button.dataset.uiMode;
+                if (targetMode !== 'parent') {
+                    applyMode(targetMode);
+                    return;
+                }
+                if (hasParentUnlock()) {
+                    applyMode('parent');
+                    return;
+                }
+                openParentLock();
+            });
+        });
+
+        if (parentLockModal && parentLockConfirm && parentLockCancel) {
+            parentLockCancel.addEventListener('click', closeParentLock);
+            parentLockModal.addEventListener('click', function (event) {
+                if (event.target === parentLockModal) closeParentLock();
+            });
+            window.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && !parentLockModal.hidden) {
+                    closeParentLock();
+                }
+            });
+            parentLockConfirm.addEventListener('click', function () {
+                const answer = parseInt(parentLockAnswer.value.trim(), 10);
+                if (answer !== currentQuestionAnswer) {
+                    parentLockError.classList.add('parent-lock-error-visible');
+                    buildVerificationQuestion();
+                    parentLockAnswer.value = '';
+                    parentLockAnswer.focus();
+                    return;
+                }
+                markParentUnlocked();
+                closeParentLock();
+                applyMode('parent');
+            });
+            parentLockAnswer.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    parentLockConfirm.click();
+                }
+            });
+        }
+
+        if (parentButton && !hasParentUnlock()) {
+            parentButton.classList.add('mode-btn-locked');
+        }
+        applyMode(savedMode);
+    })();
+    </script>
 </body>
 </html>

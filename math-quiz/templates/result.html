@@ -1,6 +1,52 @@
 {% extends "base.html" %}
 {% block title %}考试结果 - {{ student.name }}{% endblock %}
 {% block content %}
+{% set accuracy = ((exam.score / exam.total * 100)|round|int) if exam.total > 0 else 0 %}
+{% set reward_title = '太棒了，顺利完成挑战' if accuracy >= 85 else '这次挑战完成得很扎实' if accuracy >= 60 else '已经完成挑战，继续加油' %}
+<section class="hero-panel hero-panel-compact result-hero">
+    <div class="hero-copy">
+        <span class="eyebrow">挑战完成</span>
+        <h2>{{ reward_title }}</h2>
+        <p>先看本次闯关成绩，再查看哪些知识点已经点亮、哪些地方还需要继续练。</p>
+        <div class="reward-strip">
+            <span class="reward-pill">完成整卷</span>
+            <span class="reward-pill">{% if accuracy >= 85 %}解锁高分徽章{% elif accuracy >= 60 %}保持稳定节奏{% else %}拿到经验值{% endif %}</span>
+            <span class="reward-pill">继续下一关</span>
+        </div>
+        {% if progress_delta %}
+        <div class="delta-chip {% if progress_delta.delta >= 0 %}delta-up{% else %}delta-down{% endif %}">
+            与上一次同类型试卷相比：
+            {% if progress_delta.delta >= 0 %}+{% endif %}{{ progress_delta.delta }}%
+            （{{ progress_delta.previous_accuracy }}% -> {{ progress_delta.current_accuracy }}%）
+        </div>
+        {% endif %}
+    </div>
+    <div class="hero-visual">
+        <div class="score-orbit">
+            <span class="score-orbit-main">{{ exam.score }}</span>
+            <span class="score-orbit-sub">/{{ exam.total }}</span>
+        </div>
+    </div>
+</section>
+
+{% if result_rewards %}
+<section class="card">
+    <div class="section-head">
+        <h2>本次奖励</h2>
+        <span class="section-tip">先看到完成感，再继续看分析</span>
+    </div>
+    <div class="badge-grid reward-grid">
+        {% for reward in result_rewards %}
+        <article class="badge-card badge-card-earned badge-card-{{ reward.tone }}">
+            <div class="badge-icon">{{ reward.icon }}</div>
+            <div class="badge-title">{{ reward.title }}</div>
+            <div class="badge-desc">{{ reward.desc }}</div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
 <section class="card">
     <h2>考试结果</h2>
     <div class="result-summary">
@@ -11,17 +57,48 @@
         <div class="result-info">
             <p>学生：{{ student.name }}</p>
             <p>类型：{% if exam.exam_type == 'diagnostic' %}诊断卷{% else %}补弱训练卷{% endif %}</p>
-            <p>正确率：{{ (exam.score / exam.total * 100)|round|int if exam.total > 0 else 0 }}%</p>
+            <p>正确率：{{ accuracy }}%</p>
             <p>时间：{{ exam.created_at }}</p>
         </div>
     </div>
     <div class="actions">
         <a href="/student/{{ student.id }}" class="btn">返回学生档案</a>
-        <a href="/exam/training/{{ student.id }}" class="btn btn-warning">生成补弱训练卷</a>
+        <a href="/exam/training/{{ student.id }}" class="btn btn-warning">继续补弱训练</a>
     </div>
 </section>
 
-<section class="card">
+{% if exam_diagnosis %}
+<section class="card parent-zone">
+    <h2>本次诊断结论</h2>
+    <div class="focus-list">
+        {% for item in exam_diagnosis %}
+        <div class="focus-item">
+            <div class="focus-tip">{{ item }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if recommendations %}
+<section class="card parent-zone">
+    <h2>建议下一步</h2>
+    <div class="focus-list">
+        {% for item in recommendations %}
+        <div class="focus-item">
+            <div class="focus-head">
+                <strong>{{ item.kp }}</strong>
+                <span class="tag-status tag-{{ item.status }}">{{ item.status_label }}</span>
+            </div>
+            <div class="focus-meta">掌握度 {{ item.mastery_score }}%，{{ item.evidence_label }}</div>
+            <div class="focus-tip">优先练习：{{ item.subskill }}。{{ item.tip }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="card parent-zone">
     <h2>本次知识点分析</h2>
     <div class="kp-grid">
         {% for kp, data in kp_summary.items() %}
@@ -40,31 +117,33 @@
 </section>
 
 {% if all_kp_stats %}
-<section class="card">
+<section class="card parent-zone">
     <h2>累计知识点掌握情况</h2>
     <div class="kp-grid">
         {% for s in all_kp_stats %}
         <div class="kp-item {% if s.weak %}kp-weak{% else %}kp-ok{% endif %}">
-            <div class="kp-name">{{ s.kp }}</div>
+            <div class="kp-topline">
+                <div class="kp-name">{{ s.kp }}</div>
+                <span class="tag-status tag-{{ s.status }}">{{ s.status_label }}</span>
+            </div>
             <div class="progress-bar">
-                <div class="progress-fill {% if s.weak %}fill-weak{% else %}fill-ok{% endif %}" style="width: {{ s.rate }}%"></div>
+                <div class="progress-fill {% if s.weak %}fill-weak{% else %}fill-ok{% endif %}" style="width: {{ s.mastery_score }}%"></div>
             </div>
-            <div class="kp-detail">{{ s.correct }}/{{ s.total }} 正确率 {{ s.rate }}%
-                {% if s.weak %}<span class="tag-weak">薄弱</span>{% endif %}
-            </div>
+            <div class="kp-detail">掌握度 {{ s.mastery_score }}%，原始正确率 {{ s.rate }}%，{{ s.correct }}/{{ s.total }}，{{ s.evidence_label }}</div>
         </div>
         {% endfor %}
     </div>
 </section>
 {% endif %}
 
-<section class="card">
+<section class="card parent-zone">
     <h2>答题详情</h2>
     {% for a in answers %}
     <div class="answer-item {% if a.is_correct %}answer-correct{% else %}answer-wrong{% endif %}">
         <div class="answer-header">
             <span class="question-num">第 {{ loop.index }} 题</span>
             <span class="question-kp">{{ a.knowledge_point }}</span>
+            <span class="question-kp">{{ a.difficulty_label }}</span>
             {% if a.is_correct %}
             <span class="tag-correct">正确</span>
             {% else %}
@@ -72,6 +151,9 @@
             {% endif %}
         </div>
         <p class="question-text">{{ a.question }}</p>
+        {% if a.figure_svg %}
+        <div class="question-figure">{{ a.figure_svg|safe }}</div>
+        {% endif %}
         <div class="answer-detail">
             {% set labels = ['A', 'B', 'C', 'D'] %}
             {% for opt in a.options %}
@@ -89,10 +171,10 @@
             正确答案：<strong>{{ a.correct_answer }}</strong>
         </p>
         {% endif %}
-        {% if a.explanation %}
+        {% if a.detailed_explanation %}
         <div class="answer-solution">
             <div class="solution-title">解题思路</div>
-            <p class="solution-text">{{ a.explanation }}</p>
+            <p class="solution-text">{{ a.detailed_explanation }}</p>
         </div>
         {% endif %}
     </div>

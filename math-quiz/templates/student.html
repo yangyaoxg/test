@@ -1,28 +1,214 @@
 {% extends "base.html" %}
 {% block title %}{{ student.name }} - 学生档案{% endblock %}
 {% block content %}
+<section class="hero-panel hero-panel-compact">
+    <div class="hero-copy">
+        <span class="eyebrow">专属学习地图</span>
+        <h2>{{ student.name }} <span class="badge">{{ student.grade }}</span></h2>
+        <p>先做一次诊断闯关，看看今天最该点亮哪些知识点；再用补弱训练卷把薄弱处补上。</p>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <strong>{{ engagement_summary.submitted_count if engagement_summary else exams|length }}</strong>
+                <span>已完成挑战</span>
+            </div>
+            <div class="hero-stat">
+                <strong>{{ summary.weak_count if summary else 0 }}</strong>
+                <span>待点亮知识点</span>
+            </div>
+            <div class="hero-stat">
+                <strong>{{ engagement_summary.avg_accuracy if engagement_summary else 0 }}%</strong>
+                <span>平均正确率</span>
+            </div>
+        </div>
+        {% if engagement_summary and engagement_summary.latest_delta is not none %}
+        <div class="delta-chip {% if engagement_summary.latest_delta >= 0 %}delta-up{% else %}delta-down{% endif %}">
+            最近一次诊断较上次
+            {% if engagement_summary.latest_delta >= 0 %}+{% endif %}{{ engagement_summary.latest_delta }}%
+        </div>
+        {% endif %}
+    </div>
+    <div class="hero-visual">
+        <div class="map-preview">
+            {% for kp in syllabus_kps[:6] if syllabus_kps %}
+            <span class="map-node">{{ loop.index }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
 <section class="card">
-    <h2>{{ student.name }} <span class="badge">{{ student.grade }}</span></h2>
     <div class="actions">
-        <a href="/exam/diagnostic/{{ student.id }}" class="btn btn-primary">生成诊断卷（40题）</a>
-        <a href="/exam/training/{{ student.id }}" class="btn btn-warning">生成补弱训练卷</a>
+        <a href="/exam/diagnostic/{{ student.id }}" class="btn btn-primary">开始诊断闯关（40题）</a>
+        <a href="/exam/training/{{ student.id }}" class="btn btn-warning">开始补弱训练</a>
         <a href="/" class="btn">返回首页</a>
     </div>
 </section>
 
-{% if kp_stats %}
+{% if today_mission %}
+<section class="card mission-card">
+    <div class="mission-left">
+        <span class="eyebrow">今日任务</span>
+        <h2>{{ today_mission.title }}</h2>
+        <p>{{ today_mission.desc }}</p>
+    </div>
+    <div class="mission-right">
+        <a href="{{ today_mission.href }}" class="btn btn-primary">{{ today_mission.cta }}</a>
+    </div>
+</section>
+{% endif %}
+
+{% if growth_badges %}
 <section class="card">
+    <div class="section-head">
+        <h2>成长成就</h2>
+        <span class="section-tip">每完成一次挑战，都会离点亮更多徽章更近一步</span>
+    </div>
+    <div class="badge-grid">
+        {% for badge in growth_badges %}
+        <article class="badge-card {% if badge.earned %}badge-card-earned{% else %}badge-card-locked{% endif %}">
+            <div class="badge-icon">{{ badge.icon }}</div>
+            <div class="badge-title">{{ badge.title }}</div>
+            <div class="badge-desc">{{ badge.desc }}</div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if engagement_summary %}
+<section class="card">
+    <div class="section-head">
+        <h2>挑战节奏</h2>
+        <span class="section-tip">让孩子看到“我在持续完成”</span>
+    </div>
+    <div class="focus-list">
+        <div class="focus-item">
+            <div class="focus-head">
+                <strong>诊断闯关</strong>
+                <span class="question-kp">{{ engagement_summary.diagnostic_count }} 次</span>
+            </div>
+            <div class="focus-meta">用于观察阶段掌握变化和薄弱点迁移。</div>
+        </div>
+        <div class="focus-item">
+            <div class="focus-head">
+                <strong>补弱训练</strong>
+                <span class="question-kp">{{ engagement_summary.training_count }} 次</span>
+            </div>
+            <div class="focus-meta">用于巩固错题能力和专项突破。</div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% if activity_calendar %}
+<section class="card">
+    <div class="section-head">
+        <h2>30天挑战热力图</h2>
+        <span class="section-tip">最近30天活跃 {{ activity_calendar.active_days_30 }} 天，连续挑战 {{ activity_calendar.streak_days }} 天</span>
+    </div>
+    <div class="calendar-legend">
+        <span>少</span>
+        <span class="legend-dot intensity-0"></span>
+        <span class="legend-dot intensity-1"></span>
+        <span class="legend-dot intensity-2"></span>
+        <span class="legend-dot intensity-3"></span>
+        <span>多</span>
+    </div>
+    <div class="calendar-grid heatmap-grid">
+        {% for item in activity_calendar.recent_days %}
+        <article class="calendar-day heatmap-cell intensity-{{ item.intensity }}">
+            <div class="calendar-weekday">周{{ item.weekday }}</div>
+            <div class="calendar-date">{{ item.label }}</div>
+            <div class="calendar-count">{% if item.active %}{{ item.count }} 次{% else %}休息{% endif %}</div>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if syllabus_kps %}
+<section class="card parent-zone">
+    <h2>本学期知识点</h2>
+    <p>诊断卷将围绕本学期教材单元抽题，当前覆盖以下知识点：</p>
+    <div class="question-tags">
+        {% for kp in syllabus_kps %}
+        <span class="question-kp">{{ kp }}</span>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+{% if trend_summary %}
+<section class="card parent-zone">
+    <h2>最近 3 次诊断卷趋势</h2>
+    <p>已纳入 {{ trend_summary.exam_count }} 次已提交的诊断卷。</p>
+    {% if trend_summary.repeated_kps %}
+    <div class="focus-list">
+        {% for item in trend_summary.repeated_kps %}
+        <div class="focus-item">
+            <div><strong>{{ item.kp }}</strong></div>
+            <div class="focus-meta">近 3 次诊断卷累计错题 {{ item.wrong_count }} 次</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if trend_summary.repeated_abilities %}
+    <div class="question-tags">
+        {% for item in trend_summary.repeated_abilities %}
+        <span class="question-kp">{{ item.ability }}：{{ item.wrong_count }} 次</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+{% endif %}
+
+{% if kp_stats %}
+<section class="card parent-zone">
+    <h2>学习概览</h2>
+    <div class="summary-grid">
+        <div class="summary-item summary-danger">
+            <div class="summary-value">{{ summary.weak_count }}</div>
+            <div class="summary-label">优先补弱</div>
+        </div>
+        <div class="summary-item summary-warn">
+            <div class="summary-value">{{ summary.watch_count }}</div>
+            <div class="summary-label">继续巩固</div>
+        </div>
+        <div class="summary-item summary-safe">
+            <div class="summary-value">{{ summary.secure_count }}</div>
+            <div class="summary-label">掌握较稳</div>
+        </div>
+    </div>
+    {% if summary.top_focus %}
+    <div class="focus-list">
+        {% for item in summary.top_focus %}
+        <div class="focus-item">
+            <div>
+                <strong>{{ item.kp }}</strong>
+                <span class="tag-status tag-{{ item.status }}">{{ item.status_label }}</span>
+            </div>
+            <div class="focus-meta">掌握度 {{ item.mastery_score }}%，{{ item.evidence_label }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</section>
+{% endif %}
+
+{% if kp_stats %}
+<section class="card parent-zone">
     <h2>知识点掌握情况</h2>
     <div class="kp-grid">
         {% for s in kp_stats %}
         <div class="kp-item {% if s.weak %}kp-weak{% else %}kp-ok{% endif %}">
-            <div class="kp-name">{{ s.kp }}</div>
+            <div class="kp-topline">
+                <div class="kp-name">{{ s.kp }}</div>
+                <span class="tag-status tag-{{ s.status }}">{{ s.status_label }}</span>
+            </div>
             <div class="progress-bar">
-                <div class="progress-fill {% if s.weak %}fill-weak{% else %}fill-ok{% endif %}" style="width: {{ s.rate }}%"></div>
+                <div class="progress-fill {% if s.weak %}fill-weak{% else %}fill-ok{% endif %}" style="width: {{ s.mastery_score }}%"></div>
             </div>
-            <div class="kp-detail">{{ s.correct }}/{{ s.total }} 正确率 {{ s.rate }}%
-                {% if s.weak %}<span class="tag-weak">薄弱</span>{% endif %}
-            </div>
+            <div class="kp-detail">掌握度 {{ s.mastery_score }}%，原始正确率 {{ s.rate }}%，{{ s.correct }}/{{ s.total }}，{{ s.evidence_label }}</div>
         </div>
         {% endfor %}
     </div>
@@ -30,7 +216,7 @@
 {% endif %}
 
 {% if exams %}
-<section class="card">
+<section class="card parent-zone">
     <h2>考试记录</h2>
     <table>
         <thead>
